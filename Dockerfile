@@ -7,6 +7,14 @@ RUN echo "https://dl-cdn.alpinelinux.org/alpine/edge/community" >> /etc/apk/repo
     apk add gnutls-utils libtool tpm2-tools tpm2-tss-dev tpm2-tss-tcti-swtpm && \
     rm -rf /var/cache/apk/*
 
+# The base image only ships the ca-certificates-bundle and is stale: it still
+# trusts the eMudhra roots. Explicitly take the latest ca-certificates so the
+# trust store reflects current Mozilla removals, and fail the build if the
+# compromised emSign ECC G3 root is still trusted.
+RUN apk add --no-cache --upgrade ca-certificates ca-certificates-bundle && \
+    update-ca-certificates && \
+    ! ls /etc/ssl/certs | grep -qi 'emSign_ECC_Root_CA_-_G3'
+
 COPY /run-swtpm.sh /usr/local/bin/run-swtpm.sh
 RUN chmod 755 /usr/local/bin/run-swtpm.sh
 
